@@ -25,70 +25,47 @@ const writeShoppingList = (data) => {
   }
 };
 
-// API Server Setup
+// Create the server
 const server = http.createServer((req, res) => {
+  // Set CORS headers
+  res.setHeader('Access-Control-Allow-Origin', '*'); // Allow all origins
+  res.setHeader('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS'); // Allow these methods
+  res.setHeader('Access-Control-Allow-Headers', 'Content-Type'); // Allow JSON headers
+
+  // Handle preflight OPTIONS request
+  if (req.method === 'OPTIONS') {
+    res.writeHead(204); // No Content
+    return res.end();
+  }
+
   const { method, url } = req;
 
   // Handle GET /shopping-list
   if (method === 'GET' && url === '/shopping-list') {
     const list = readShoppingList();
     res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(list));
+    return res.end(JSON.stringify(list));
   }
-  
+
   // Handle POST /shopping-list
   else if (method === 'POST' && url === '/shopping-list') {
     let body = '';
     req.on('data', chunk => (body += chunk));
     req.on('end', () => {
       const newItem = JSON.parse(body);
+
       if (!newItem.name || newItem.quantity <= 0) {
         res.writeHead(400, { 'Content-Type': 'application/json' });
         return res.end(JSON.stringify({ error: 'Invalid item data' }));
       }
+
       const list = readShoppingList();
       list.push(newItem);
       writeShoppingList(list);
+
       res.writeHead(201, { 'Content-Type': 'application/json' });
       res.end(JSON.stringify(newItem));
     });
-  }
-
-  // Handle PUT /shopping-list/:index
-  else if (method === 'PUT' && url.startsWith('/shopping-list/')) {
-    const index = parseInt(url.split('/')[2]);
-    let body = '';
-    req.on('data', chunk => (body += chunk));
-    req.on('end', () => {
-      const updatedItem = JSON.parse(body);
-      const list = readShoppingList();
-
-      if (index < 0 || index >= list.length) {
-        res.writeHead(404, { 'Content-Type': 'application/json' });
-        return res.end(JSON.stringify({ error: 'Item not found' }));
-      }
-
-      list[index] = { ...list[index], ...updatedItem };
-      writeShoppingList(list);
-      res.writeHead(200, { 'Content-Type': 'application/json' });
-      res.end(JSON.stringify(list[index]));
-    });
-  }
-
-  // Handle DELETE /shopping-list/:index
-  else if (method === 'DELETE' && url.startsWith('/shopping-list/')) {
-    const index = parseInt(url.split('/')[2]);
-    const list = readShoppingList();
-
-    if (index < 0 || index >= list.length) {
-      res.writeHead(404, { 'Content-Type': 'application/json' });
-      return res.end(JSON.stringify({ error: 'Item not found' }));
-    }
-
-    const removedItem = list.splice(index, 1);
-    writeShoppingList(list);
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify(removedItem));
   }
 
   // Handle unknown routes

@@ -5,36 +5,43 @@ const ShoppingListForm = () => {
   const [name, setName] = useState('');
   const [quantity, setQuantity] = useState(1);
   const [message, setMessage] = useState('');
-
   const handleSubmit = async (e) => {
     e.preventDefault();
-
-    if (!name || quantity <= 0) {
+    console.log('Submitting:', { name, quantity });
+  
+    // Ensure name is non-empty and quantity is a valid positive number
+    if (!name.trim() || isNaN(quantity) || quantity <= 0) {
       setMessage('Please enter a valid item name and quantity.');
       return;
     }
-
+  
     try {
       const response = await fetch('http://localhost:3000/shopping-list', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ name, quantity }),
+        body: JSON.stringify({ name, quantity: parseInt(quantity, 10) }),
       });
-
+  
+      console.log('Response status:', response.status); // Log response status
+  
       if (response.ok) {
         setMessage('Item added successfully!');
-        setName('');
-        setQuantity(1);
+        // Use function form to avoid stale closures
+        setName(() => '');
+        setQuantity(() => 1);
       } else {
         const data = await response.json();
-        setMessage(`Error: ${data.error}`);
+        const errorMessage = data.error || 'Unknown error occurred.';
+        setMessage(`Error: ${errorMessage}`);
       }
     } catch (error) {
+      console.error('Fetch error:', error); // Log fetch errors
       setMessage('Failed to add item. Please try again later.');
     }
   };
+  
 
   return (
     <div className="min-h-screen flex items-center justify-center bg-gray-100">
